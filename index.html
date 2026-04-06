@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>HOMESTOCK</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d6a4f">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#faf7f2;--white:#fff;--black:#1a1a1a;
+  --grn:#2d6a4f;--grnl:#40916c;--grnp:#d8f3dc;
+  --org:#e07b39;--orgl:#f4a261;--orgp:#fdebd0;
+  --red:#c0392b;--redp:#fdecea;
+  --blu:#1e5fa8;--blup:#e8f0fa;
+  --brn:#7c5c3a;--brnp:#f5ebe0;
+  --crm:#f2e9d8;--crmb:#e0d0b8;
+  --gray:#888;--grayl:#e8e4dc;--brd:#d8cfc4;
+  --sh:0 2px 12px rgba(0,0,0,.08);--r:12px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--black);min-height:100vh;max-width:480px;margin:0 auto}
+
+#splash{position:fixed;inset:0;background:var(--grn);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .4s}
+#splash.hide{opacity:0;pointer-events:none}
+#splash .stitle{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:white;letter-spacing:2px;line-height:1}
+#splash .stitle span{color:#a8e6cf}
+#splash .ssub{font-size:13px;color:rgba(255,255,255,.5);margin-top:12px;letter-spacing:2px;text-transform:uppercase}
+#splash .sicon{font-size:64px;margin-bottom:16px}
+
+/* SYNC STATUS */
+#sync-bar{background:var(--grnp);border-bottom:1px solid var(--grnl);padding:4px 16px;font-size:11px;color:var(--grn);font-weight:600;display:flex;align-items:center;gap:6px;min-height:24px}
+#sync-bar.err{background:var(--redp);border-color:var(--red);color:var(--red)}
+#sync-dot{width:8px;height:8px;border-radius:50%;background:var(--grnl);flex-shrink:0}
+#sync-bar.err #sync-dot{background:var(--red)}
+
+.header{background:var(--white);border-bottom:3px solid var(--grn);padding:0 16px;position:sticky;top:0;z-index:100;box-shadow:var(--sh)}
+.header-inner{display:flex;align-items:center;height:60px;gap:12px}
+.app-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:1px;color:var(--grn)}
+.app-title span{color:var(--org)}
+.header-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+.alert-banner{background:var(--orgp);border-bottom:2px solid var(--orgl);padding:8px 16px;font-size:13px;color:var(--brn);display:none;align-items:center;gap:8px;cursor:pointer}
+.alert-banner.show{display:flex}
+.alert-count{background:var(--org);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+
+.bc{display:flex;align-items:center;gap:6px;padding:10px 16px;font-size:13px;color:var(--gray);background:var(--white);border-bottom:1px solid var(--grayl);overflow-x:auto;white-space:nowrap}
+.bci{cursor:pointer;color:var(--grn);font-weight:600}
+.bci:last-child{color:var(--black);cursor:default;font-weight:500}
+.bcs{color:var(--brd)}
+
+.content{padding:16px}
+.lvl-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.lvl-ttl{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray)}
+
+.card-list{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-left:4px solid transparent}
+.card.loc{border-left-color:var(--grn)}
+.card.cat{border-left-color:var(--org)}
+.card.food{border-left-color:var(--grn)}
+.card.food.warn{border-left-color:var(--org)}
+.card.food.expired{border-left-color:var(--red)}
+
+.card-body{display:flex;align-items:center;padding:14px 12px;gap:10px;cursor:pointer}
+.card-info{flex:1;min-width:0}
+.card-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)}
+.card-meta{font-size:12px;color:var(--gray);margin-top:2px}
+
+.typ-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0}
+.typ-badge.subs{background:var(--orgp);color:var(--org)}
+.typ-badge.direct{background:var(--grnp);color:var(--grn)}
+.typ-badge.frost{background:var(--blup);color:var(--blu)}
+.alert-dot{background:var(--org);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-left:6px;flex-shrink:0}
+
+.lote-list{border-top:1px solid var(--grayl)}
+.lote-row{display:flex;align-items:center;padding:9px 12px;gap:8px;border-bottom:1px solid var(--grayl)}
+.lote-row:last-child{border-bottom:none}
+.lote-info{flex:1;font-size:13px;color:var(--black)}
+.lote-uds{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--grn);min-width:28px;text-align:center}
+.lote-uds.zero{color:var(--red)}
+.exp-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0}
+.exp-tag.ok{background:var(--grnp);color:var(--grn)}
+.exp-tag.warn{background:var(--orgp);color:var(--org)}
+.exp-tag.expired{background:var(--redp);color:var(--red)}
+.exp-tag.none{background:var(--crm);color:var(--gray)}
+.lote-btns{display:flex;gap:4px;flex-shrink:0}
+.lote-btn{width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.lote-btn.edit{background:var(--blup);color:var(--blu)}
+.lote-btn.del{background:var(--redp);color:var(--red)}
+.lote-stk{display:flex;align-items:center;gap:4px}
+.lstk-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--grnl);background:var(--white);color:var(--grn);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lstk-btn.minus{border-color:var(--red);color:var(--red)}
+
+.card-acts{display:flex;border-top:1px solid var(--grayl)}
+.card-act{flex:1;padding:9px;border:none;background:transparent;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+.card-act:not(:last-child){border-right:1px solid var(--grayl)}
+.card-act.edit{color:var(--grn)}.card-act.edit:active{background:var(--grnp)}
+.card-act.del{color:var(--red)}.card-act.del:active{background:var(--redp)}
+.card-act.add{color:var(--blu)}.card-act.add:active{background:var(--blup)}
+
+.fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--grn);color:white;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 16px rgba(45,106,79,.5);display:flex;align-items:center;justify-content:center;transition:transform .15s;z-index:50}
+.fab:active{transform:scale(.93)}
+.fab.orange{background:var(--org);box-shadow:0 4px 16px rgba(224,123,57,.5)}
+.fab.brown{background:var(--brn);box-shadow:0 4px 16px rgba(124,92,58,.5)}
+
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.mo.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:20px 20px 0 0;width:100%;padding:24px 20px 36px;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.1,.64,1);max-height:90vh;overflow-y:auto}
+.mo.open .modal{transform:translateY(0)}
+.mhdl{width:40px;height:4px;background:var(--brd);border-radius:2px;margin:0 auto 20px}
+.mttl{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--black);margin-bottom:18px;text-transform:uppercase;letter-spacing:.5px}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fi{width:100%;border:1.5px solid var(--brd);border-radius:var(--rs);padding:11px 14px;font-family:'Barlow',sans-serif;font-size:15px;color:var(--black);background:var(--bg);outline:none;text-transform:uppercase}
+.fi:focus{border-color:var(--grn)}
+.fi.nocase{text-transform:none}
+.fr{display:flex;gap:10px}.fr .fg{flex:1}
+
+.tgl-row{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--brd);border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;cursor:pointer}
+.tgl-row.on{border-color:var(--grn);background:var(--grnp)}
+.tgl-row.on2{border-color:var(--blu);background:var(--blup)}
+.tgl-sw{width:44px;height:24px;border-radius:12px;background:var(--brd);position:relative;flex-shrink:0;transition:background .2s}
+.tgl-sw::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.tgl-row.on .tgl-sw{background:var(--grn)}
+.tgl-row.on2 .tgl-sw{background:var(--blu)}
+.tgl-row.on .tgl-sw::after,.tgl-row.on2 .tgl-sw::after{transform:translateX(20px)}
+.tgl-lbl{font-size:14px;font-weight:600;color:var(--black)}
+.tgl-sub{font-size:12px;color:var(--gray);margin-top:2px}
+.info-box{background:var(--blup);border:1.5px solid var(--blu);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--blu);margin-bottom:14px}
+
+.btn{width:100%;padding:14px;border:none;border-radius:var(--rs);background:var(--grn);color:white;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:6px}
+.btn:active{opacity:.85}
+.btn.orange{background:var(--org)}
+.btn.brown{background:var(--brn)}
+.btn.blue{background:var(--blu)}
+
+.mic-btn{width:48px;height:48px;border-radius:50%;border:2px solid var(--grn);background:var(--white);color:var(--grn);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mic-btn.on{background:var(--grn);color:white;animation:pulso .8s infinite alternate}
+@keyframes pulso{from{box-shadow:0 0 0 0 rgba(45,106,79,.4)}to{box-shadow:0 0 0 10px rgba(45,106,79,0)}}
+.src-row{display:flex;align-items:flex-end;gap:10px}
+.src-row .fg{flex:1;margin-bottom:0}
+
+.sr{background:var(--grnp);border:1.5px solid var(--grnl);border-radius:var(--rs);padding:12px 14px;margin-bottom:10px;font-size:14px;color:var(--grn);cursor:pointer}
+.sr strong{color:var(--black);display:block;font-size:16px;margin-bottom:4px}
+.sr.nf{background:var(--redp);border-color:var(--red);color:var(--red);cursor:default}
+.btn-ok{width:100%;padding:12px;border:none;border-radius:var(--rs);background:var(--grn);color:white;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:14px}
+.btn-ok:active{opacity:.85}
+
+.empty{text-align:center;padding:48px 24px;color:var(--gray)}
+.empty p{font-size:14px;line-height:1.5}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--black);color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.cov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.cov.open{opacity:1;pointer-events:all}
+.cbox{background:var(--white);border-radius:var(--r);padding:24px 20px;width:100%;max-width:320px;text-align:center;transform:scale(.9);transition:transform .2s}
+.cov.open .cbox{transform:scale(1)}
+.cbox h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px}
+.cbox p{font-size:14px;color:var(--gray);margin-bottom:20px;line-height:1.4}
+.cbtns{display:flex;gap:10px}
+.cbtn{flex:1;padding:12px;border:none;border-radius:var(--rs);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;cursor:pointer}
+.cbtn.cancel{background:var(--grayl);color:var(--black)}
+.cbtn.danger{background:var(--red);color:white}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="sicon">🏠</div>
+  <div class="stitle">HOME<span>STOCK</span></div>
+  <div class="ssub">Control de alimentos</div>
+</div>
+
+<div id="sync-bar"><div id="sync-dot"></div><span id="sync-msg">Conectando...</span></div>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="app-title">HOME<span>STOCK</span></div>
+    <div class="header-actions">
+      <button onclick="showAlerts()" id="alert-btn" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--org);padding:4px;display:none;">⚠️</button>
+      <button onclick="changeUser()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray);padding:4px;" title="Cambiar usuario">👤</button>
+      <button onclick="showSearch()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--grn);padding:4px;">🔍</button>
+    </div>
+  </div>
+</div>
+
+<div class="alert-banner" id="alert-banner" onclick="showAlerts()">
+  <div class="alert-count" id="alert-count">0</div>
+  <span id="alert-text">lotes caducan pronto o ya han caducado</span>
+</div>
+
+<div class="bc" id="bc"></div>
+<div class="content" id="main"></div>
+<button class="fab" id="fab" onclick="openAdd()">＋</button>
+
+<div class="mo" id="mo" onclick="closeMo(event)">
+  <div class="modal">
+    <div class="mhdl"></div>
+    <div class="mttl" id="mttl"></div>
+    <div id="mform"></div>
+  </div>
+</div>
+
+<div class="mo" id="so" onclick="closeSo(event)">
+  <div class="modal">
+    <div class="mhdl"></div>
+    <div class="mttl">🔍 Buscar Alimento</div>
+    <div class="src-row">
+      <div class="fg">
+        <label class="fl">Nombre del alimento</label>
+        <input class="fi nocase" id="si" placeholder="ej: leche, arroz..." oninput="doSearch()" autocomplete="off">
+      </div>
+      <button class="mic-btn" id="micbtn" onclick="toggleVoice()">🎙</button>
+    </div>
+    <div id="sres" style="margin-top:12px;max-height:50vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div class="mo" id="ao" onclick="closeAo(event)">
+  <div class="modal">
+    <div class="mhdl"></div>
+    <div class="mttl">⚠️ Alertas de Caducidad</div>
+    <div id="ares" style="max-height:60vh;overflow-y:auto;"></div>
+    <button class="btn-ok" onclick="document.getElementById('ao').classList.remove('open')">OK</button>
+  </div>
+</div>
+
+<div class="cov" id="cov">
+  <div class="cbox">
+    <h3 id="ctit">¿Eliminar?</h3>
+    <p id="cmsg"></p>
+    <div class="cbtns">
+      <button class="cbtn cancel" onclick="closeCov()">Cancelar</button>
+      <button class="cbtn danger" onclick="doDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// ---- FIREBASE ----
+const firebaseConfig = {
+  apiKey: "AIzaSyChMXx5ZcleAo5oqzPvo1K_Af_wgQkh-LQ",
+  authDomain: "listify-16b5d.firebaseapp.com",
+  databaseURL: "https://listify-16b5d-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "listify-16b5d",
+  storageBucket: "listify-16b5d.firebasestorage.app",
+  messagingSenderId: "238610923350",
+  appId: "1:238610923350:web:cd5c2c3fb23b5c0afba0f7"
+};
+firebase.initializeApp(firebaseConfig);
+// ---- USUARIOS Y BLOQUES ----
+const BLOQUES = {
+  'JUAN':  'bloque1',
+  'AMAIA': 'bloque1',
+  'EIDER': 'bloque2',
+  'CRIS':  'bloque2'
+};
+
+let currentUser = localStorage.getItem('homestock_user') || null;
+let dbRef = null;
+
+function getDbRef(user) {
+  return firebase.database().ref('homestock/' + BLOQUES[user]);
+}
+
+function renderUserSelector() {
+  document.getElementById('sync-bar').style.display = 'none';
+  document.getElementById('fab').style.display = 'none';
+  document.getElementById('alert-btn').style.display = 'none';
+  document.getElementById('alert-banner').classList.remove('show');
+  document.querySelector('.app-title').innerHTML = `HOME<span>STOCK</span>`;
+  document.getElementById('bc').innerHTML = '';
+  document.getElementById('main').innerHTML = `
+    <div style="text-align:center;padding:32px 0 16px;">
+      <div style="font-size:48px;margin-bottom:8px;">🏠</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--gray);letter-spacing:1px;margin-bottom:32px;">¿QUIÉN ERES?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        ${Object.keys(BLOQUES).map(u => `
+          <button onclick="selectUser('${u}')" style="
+            padding:24px 12px;border:2px solid var(--${BLOQUES[u]==='bloque1'?'grn':'org'});
+            border-radius:var(--r);background:var(--${BLOQUES[u]==='bloque1'?'grnp':'orgp'});
+            font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;
+            color:var(--${BLOQUES[u]==='bloque1'?'grn':'org'});cursor:pointer;
+            display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <span style="font-size:36px;">${BLOQUES[u]==='bloque1'?'🌿':'🌸'}</span>
+            ${u}
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function selectUser(user) {
+  currentUser = user;
+  localStorage.setItem('homestock_user', user);
+  db = { locations: [] };
+  nav = {locId:null, catId:null};
+  initWithUser();
+}
+
+function changeUser() {
+  if(dbRef) { dbRef.off(); dbRef=null; }
+  currentUser = null;
+  localStorage.removeItem('homestock_user');
+  db = { locations: [] };
+  nav = {locId:null, catId:null};
+  renderUserSelector();
+}
+
+function initWithUser() {
+  document.getElementById('fab').style.display = 'flex';
+  document.getElementById('sync-bar').style.display = 'flex';
+  document.querySelector('.app-title').innerHTML = `HOME<span>STOCK</span> <span style="font-size:14px;color:var(--gray);font-weight:400;">${currentUser}</span>`;
+  if(dbRef) dbRef.off();
+  dbRef = getDbRef(currentUser);
+  dbRef.on('value', snap => {
+    if(isSaving) return;
+    const val = snap.val();
+    if(val) {
+      db = fixArrays(val);
+      if(!db.locations) db.locations = [];
+    } else {
+      db = { locations: [] };
+    }
+    setSyncStatus(true, '✓ Sincronizado');
+    render();
+  }, () => setSyncStatus(false, '⚠️ Sin conexión'));
+}
+
+// Firebase convierte arrays en objetos — esta función los restaura
+function fixArrays(obj) {
+  if(Array.isArray(obj)) return obj.map(fixArrays);
+  if(obj !== null && typeof obj === 'object') {
+    // Si todas las claves son números consecutivos desde 0, es un array
+    const keys = Object.keys(obj);
+    const isArr = keys.length > 0 && keys.every((k,i) => parseInt(k) === i);
+    if(isArr) return keys.map(k => fixArrays(obj[k]));
+    const result = {};
+    keys.forEach(k => result[k] = fixArrays(obj[k]));
+    return result;
+  }
+  return obj;
+}
+
+let db = { locations: [] };
+let nav = {locId:null, catId:null};
+let mmode=null, medit=null, medit2=null, delCb=null, subsOn=false, frostOn=false, recog=null;
+let saving=false;
+
+const gid = () => Date.now().toString(36)+Math.random().toString(36).slice(2);
+const getLoc = id => db.locations.find(l=>l.id===id);
+const getCat = (loc,id) => loc&&(loc.categories||[]).find(c=>c.id===id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const toast = msg => { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); };
+
+function setSyncStatus(ok, msg){
+  const bar=document.getElementById('sync-bar');
+  bar.className=ok?'':'err';
+  document.getElementById('sync-msg').textContent=msg;
+}
+
+// ---- FIREBASE SYNC ----
+let isSaving = false;
+
+function save(){
+  if(!dbRef) return;
+  isSaving = true;
+  setSyncStatus(true,'Guardando...');
+  dbRef.set(db)
+    .then(()=>{ setSyncStatus(true,'✓ Sincronizado'); isSaving=false; })
+    .catch(()=>{ setSyncStatus(false,'⚠️ Error al guardar'); isSaving=false; });
+}
+
+// Escuchar cambios en tiempo real — se activa en initWithUser()
+
+
+
+// ---- CADUCIDAD ----
+function addMonths(date, months){
+  const d=new Date(date); d.setMonth(d.getMonth()+months);
+  return d.toISOString().split('T')[0];
+}
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+function expStatus(dateStr){
+  if(!dateStr) return {label:'Sin fecha',cls:'none',days:null};
+  const now=new Date(); now.setHours(0,0,0,0);
+  const exp=new Date(dateStr); exp.setHours(0,0,0,0);
+  const days=Math.round((exp-now)/86400000);
+  if(days<0) return {label:`Caducó hace ${Math.abs(days)}d`,cls:'expired',days};
+  if(days===0) return {label:'Caduca HOY',cls:'expired',days};
+  if(days<=7) return {label:`Caduca en ${days}d`,cls:'warn',days};
+  return {label:`Cad. ${exp.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})}`,cls:'ok',days};
+}
+
+function getFoods(){
+  const loc=getLoc(nav.locId); if(!loc) return null;
+  if(loc.hasSubs){ const cat=getCat(loc,nav.catId); return cat?cat.foods:null; }
+  if(!loc.foods) loc.foods=[];
+  return loc.foods;
+}
+
+function getAllFoodLotes(){
+  const all=[];
+  db.locations.forEach(loc=>{
+    const items=loc.hasSubs?(loc.categories||[]).flatMap(c=>c.foods.map(f=>({loc,cat:c,f}))):(loc.foods||[]).map(f=>({loc,cat:null,f}));
+    items.forEach(({loc,cat,f})=>(f.lotes||[]).forEach(l=>all.push({loc,cat,f,l})));
+  });
+  return all;
+}
+
+function updateAlertBanner(){
+  const alerts=getAllFoodLotes().filter(({l})=>{const s=expStatus(l.expDate);return s.cls==='expired'||s.cls==='warn';});
+  const btn=document.getElementById('alert-btn');
+  const banner=document.getElementById('alert-banner');
+  document.getElementById('alert-count').textContent=alerts.length;
+  document.getElementById('alert-text').textContent=alerts.length===1?'lote caduca pronto o ya ha caducado':'lotes caducan pronto o ya han caducado';
+  if(alerts.length){btn.style.display='block';banner.classList.add('show');}
+  else{btn.style.display='none';banner.classList.remove('show');}
+}
+
+// ---- RENDER ----
+function render(){
+  if(!currentUser) return;
+  renderBC(); renderMain(); updateFab(); updateAlertBanner();
+}
+
+function renderBC(){
+  const bc=document.getElementById('bc');
+  let h=`<span class="bci" onclick="goHome()">🏠 Inicio</span>`;
+  if(nav.locId){
+    const loc=getLoc(nav.locId);
+    if(loc){
+      if(loc.hasSubs&&nav.catId){
+        h+=`<span class="bcs">›</span><span class="bci" onclick="goLoc('${loc.id}')">${esc(loc.name)}</span>`;
+        const cat=getCat(loc,nav.catId);
+        if(cat) h+=`<span class="bcs">›</span><span class="bci">${esc(cat.name)}</span>`;
+      } else {
+        h+=`<span class="bcs">›</span><span class="bci">${esc(loc.name)}</span>`;
+      }
+    }
+  }
+  bc.innerHTML=h;
+}
+
+function renderMain(){
+  const el=document.getElementById('main');
+  if(!nav.locId){renderLocs(el);return;}
+  const loc=getLoc(nav.locId);
+  if(!loc){goHome();return;}
+  if(loc.hasSubs&&!nav.catId) renderCats(el,loc);
+  else renderFoods(el,loc);
+}
+
+function locAlertCount(loc){
+  const foods=loc.hasSubs?(loc.categories||[]).flatMap(c=>c.foods):(loc.foods||[]);
+  return foods.reduce((a,f)=>a+(f.lotes||[]).filter(l=>{const s=expStatus(l.expDate);return s.cls==='expired'||s.cls==='warn';}).length,0);
+}
+
+function renderLocs(el){
+  let h=`<div class="lvl-hdr"><div class="lvl-ttl">Ubicaciones</div></div>`;
+  if(!db.locations.length){
+    h+=`<div class="empty"><div style="font-size:56px;margin-bottom:12px;">🏠</div><p>Sin ubicaciones todavía.<br>Pulsa <strong>＋</strong> para añadir la primera.</p></div>`;
+  } else {
+    h+=`<div class="card-list">`;
+    db.locations.forEach(loc=>{
+      let meta,badges='';
+      if(loc.hasSubs){
+        const nc=(loc.categories||[]).length, nf=(loc.categories||[]).reduce((a,c)=>a+c.foods.length,0);
+        meta=`${nc} sección${nc!==1?'es':''} · ${nf} alimento${nf!==1?'s':''}`;
+        badges+=`<span class="typ-badge subs">Secciones</span>`;
+      } else {
+        const nf=(loc.foods||[]).length;
+        meta=`${nf} alimento${nf!==1?'s':''}`;
+        badges+=`<span class="typ-badge direct">Directo</span>`;
+      }
+      if(loc.isFrost) badges+=` <span class="typ-badge frost">❄️ Congelador</span>`;
+      const ac=locAlertCount(loc);
+      const alertDot=ac?`<span class="alert-dot">${ac}</span>`:'';
+      h+=`<div class="card loc">
+        <div class="card-body" onclick="goLoc('${loc.id}')">
+          <div class="card-info"><div class="card-name">${esc(loc.name)}${alertDot}</div><div class="card-meta">${meta}</div></div>
+          ${badges}<span style="color:var(--gray);font-size:20px;margin-left:6px;">›</span>
+        </div>
+        <div class="card-acts">
+          <button class="card-act edit" onclick="editLoc('${loc.id}')">✏️ Editar</button>
+          <button class="card-act del" onclick="askDel('ubicación','${esc(loc.name)}',()=>delLoc('${loc.id}'))">🗑 Eliminar</button>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderCats(el,loc){
+  let h=`<div class="lvl-hdr"><div class="lvl-ttl">${esc(loc.name)}${loc.isFrost?' ❄️':''}</div></div>`;
+  const cats=loc.categories||[];
+  if(!cats.length){
+    h+=`<div class="empty"><div style="font-size:48px;margin-bottom:12px;">🗂</div><p>Sin secciones.<br>Pulsa <strong>＋</strong> para añadir.</p></div>`;
+  } else {
+    h+=`<div class="card-list">`;
+    cats.forEach(cat=>{
+      const n=cat.foods.length;
+      const ac=cat.foods.reduce((a,f)=>a+(f.lotes||[]).filter(l=>{const s=expStatus(l.expDate);return s.cls==='expired'||s.cls==='warn';}).length,0);
+      const alertDot=ac?`<span class="alert-dot">${ac}</span>`:'';
+      h+=`<div class="card cat">
+        <div class="card-body" onclick="goCat('${cat.id}')">
+          <div class="card-info"><div class="card-name">${esc(cat.name)}${alertDot}</div><div class="card-meta">${n} alimento${n!==1?'s':''}</div></div>
+          <span style="color:var(--gray);font-size:20px;">›</span>
+        </div>
+        <div class="card-acts">
+          <button class="card-act edit" onclick="editCat('${cat.id}')">✏️ Editar</button>
+          <button class="card-act del" onclick="askDel('sección','${esc(cat.name)}',()=>delCat('${cat.id}'))">🗑 Eliminar</button>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderFoods(el,loc){
+  let foods,cname;
+  if(loc.hasSubs){const cat=getCat(loc,nav.catId);if(!cat){goLoc(nav.locId);return;}foods=cat.foods;cname=cat.name;}
+  else{foods=loc.foods||[];cname=loc.name;}
+  const isFrost=loc.isFrost;
+  let h=`<div class="lvl-hdr"><div class="lvl-ttl">${esc(cname)}${isFrost?' ❄️':''}</div></div>`;
+  if(!foods.length){
+    h+=`<div class="empty"><div style="font-size:48px;margin-bottom:12px;">🥫</div><p>Sin alimentos aquí.<br>Pulsa <strong>＋</strong> para añadir el primero.</p></div>`;
+  } else {
+    h+=`<div class="card-list">`;
+    foods.forEach(f=>{
+      const lotes=f.lotes||[];
+      const worstStatus=lotes.length?lotes.map(l=>expStatus(l.expDate)).sort((a,b)=>(a.days??9999)-(b.days??9999))[0]:{cls:'none'};
+      const cardCls=worstStatus.cls==='expired'?'expired':worstStatus.cls==='warn'?'warn':'';
+      const totalUds=lotes.reduce((a,l)=>a+l.stock,0);
+      h+=`<div class="card food ${cardCls}" id="fcard-${f.id}">
+        <div class="card-body" style="cursor:default;">
+          <div class="card-info">
+            <div class="card-name">${esc(f.name)}</div>
+            <div class="card-meta">${f.brand?esc(f.brand):'Sin marca'} · ${totalUds} ud${totalUds!==1?'s':''} · ${lotes.length} lote${lotes.length!==1?'s':''}</div>
+          </div>
+        </div>`;
+      if(lotes.length){
+        const sorted=[...lotes].sort((a,b)=>(expStatus(a.expDate).days??9999)-(expStatus(b.expDate).days??9999));
+        h+=`<div class="lote-list">`;
+        sorted.forEach(l=>{
+          const exp=expStatus(l.expDate);
+          h+=`<div class="lote-row">
+            <div class="lote-stk">
+              <button class="lstk-btn minus" onclick="chgLote('${f.id}','${l.id}',-1)">−</button>
+              <span class="lote-uds${l.stock===0?' zero':''}" id="lu-${l.id}">${l.stock}</span>
+              <button class="lstk-btn" onclick="chgLote('${f.id}','${l.id}',1)">＋</button>
+            </div>
+            <div class="lote-info" style="margin-left:6px;">ud${l.stock!==1?'s':''}</div>
+            <span class="exp-tag ${exp.cls}">${exp.label}</span>
+            <div class="lote-btns">
+              <button class="lote-btn edit" onclick="editLote('${f.id}','${l.id}')">✏️</button>
+              <button class="lote-btn del" onclick="askDel('lote','este lote',()=>delLote('${f.id}','${l.id}'))">🗑</button>
+            </div>
+          </div>`;
+        });
+        h+=`</div>`;
+      }
+      h+=`<div class="card-acts">
+        <button class="card-act add" onclick="openAddLote('${f.id}')">＋ Lote</button>
+        <button class="card-act edit" onclick="editFood('${f.id}')">✏️ Editar</button>
+        <button class="card-act del" onclick="askDel('alimento','${esc(f.name)}',()=>delFood('${f.id}'))">🗑 Eliminar</button>
+      </div></div>`;
+    });
+    h+=`</div>`;
+  }
+  el.innerHTML=h;
+}
+
+// ---- NAV ----
+function goHome(){nav={locId:null,catId:null};render();}
+function goLoc(id){nav={locId:id,catId:null};render();}
+function goCat(id){nav.catId=id;render();}
+function updateFab(){
+  const fab=document.getElementById('fab');
+  if(!nav.locId){fab.className='fab';return;}
+  const loc=getLoc(nav.locId);
+  fab.className=(loc&&loc.hasSubs&&!nav.catId)?'fab orange':'fab brown';
+}
+
+// ---- LOTES STOCK ----
+function chgLote(fid,lid,delta){
+  const foods=getFoods();if(!foods)return;
+  const f=foods.find(x=>x.id===fid);if(!f)return;
+  const l=(f.lotes||[]).find(x=>x.id===lid);if(!l)return;
+  l.stock=Math.max(0,l.stock+delta);
+  save();
+  const el=document.getElementById('lu-'+lid);
+  if(el){el.textContent=l.stock;el.className='lote-uds'+(l.stock===0?' zero':'');}
+  updateAlertBanner();
+}
+
+// ---- MODAL ----
+function openAdd(){
+  if(!nav.locId){openAddLoc();return;}
+  const loc=getLoc(nav.locId);
+  if(loc&&loc.hasSubs&&!nav.catId) openAddCat();
+  else openAddFood();
+}
+
+function openAddLoc(){
+  mmode='add-loc';medit=null;subsOn=false;frostOn=false;
+  document.getElementById('mttl').textContent='📦 Nueva Ubicación';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg"><label class="fl">Nombre de la ubicación</label>
+    <input class="fi" id="fn" placeholder="ej: NEVERA, DESPENSA..." autocomplete="off"></div>
+    <div class="tgl-row" id="trow" onclick="togSubs()">
+      <div class="tgl-sw"></div>
+      <div><div class="tgl-lbl">¿Tiene secciones?</div>
+      <div class="tgl-sub" id="tdesc">No — los alimentos van directamente aquí</div></div>
+    </div>
+    <div class="tgl-row" id="frow" onclick="togFrost()">
+      <div class="tgl-sw"></div>
+      <div><div class="tgl-lbl">❄️ ¿Es un congelador?</div>
+      <div class="tgl-sub" id="fdesc">No — caducidad normal</div></div>
+    </div>
+    <button class="btn" onclick="saveMo()">GUARDAR UBICACIÓN</button>`;
+  openMo();
+}
+function togSubs(){subsOn=!subsOn;document.getElementById('trow').classList.toggle('on',subsOn);document.getElementById('tdesc').textContent=subsOn?'Sí — tendrá estantes, cajones, etc.':'No — los alimentos van directamente aquí';}
+function togFrost(){frostOn=!frostOn;document.getElementById('frow').classList.toggle('on2',frostOn);document.getElementById('fdesc').textContent=frostOn?'Sí — caducidad = fecha entrada + 9 meses':'No — caducidad normal';}
+
+function editLoc(id){
+  const loc=getLoc(id);if(!loc)return;
+  mmode='edit-loc';medit=id;
+  document.getElementById('mttl').textContent='✏️ Editar Ubicación';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg"><label class="fl">Nombre</label>
+    <input class="fi" id="fn" value="${esc(loc.name)}" autocomplete="off"></div>
+    <button class="btn" onclick="saveMo()">GUARDAR CAMBIOS</button>`;
+  openMo();
+}
+function openAddCat(){
+  mmode='add-cat';medit=null;
+  document.getElementById('mttl').textContent='🗂 Nueva Sección';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg"><label class="fl">Nombre</label>
+    <input class="fi" id="fn" placeholder="ej: ESTANTE ALTO, CAJÓN VERDURAS" autocomplete="off"></div>
+    <button class="btn orange" onclick="saveMo()">GUARDAR</button>`;
+  openMo();
+}
+function editCat(id){
+  const loc=getLoc(nav.locId);const cat=getCat(loc,id);if(!cat)return;
+  mmode='edit-cat';medit=id;
+  document.getElementById('mttl').textContent='✏️ Editar Sección';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg"><label class="fl">Nombre</label>
+    <input class="fi" id="fn" value="${esc(cat.name)}" autocomplete="off"></div>
+    <button class="btn orange" onclick="saveMo()">GUARDAR CAMBIOS</button>`;
+  openMo();
+}
+function openAddFood(){
+  mmode='add-food';medit=null;
+  const loc=getLoc(nav.locId);const isFrost=loc&&loc.isFrost;
+  const expDefault=isFrost?addMonths(today(),9):'';
+  document.getElementById('mttl').textContent='🥫 Nuevo Alimento';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg"><label class="fl">Nombre del alimento</label>
+    <input class="fi" id="fn" placeholder="ej: LECHE ENTERA" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Marca (opcional)</label>
+    <input class="fi" id="fbrand" placeholder="ej: CENTRAL LECHERA" autocomplete="off"></div>
+    ${isFrost?`<div class="info-box">❄️ Congelador — fecha calculada automáticamente (hoy + 9 meses)</div>`:''}
+    <div class="fr">
+      <div class="fg"><label class="fl">Unidades (1er lote)</label>
+      <input class="fi nocase" id="fstk" type="number" min="0" value="1" style="text-align:center;font-weight:700;font-size:18px;text-transform:none;"></div>
+      <div class="fg"><label class="fl">Fecha caducidad</label>
+      <input class="fi nocase" id="fexp" type="date" value="${expDefault}" style="text-transform:none;" ${isFrost?'readonly':''}></div>
+    </div>
+    <button class="btn brown" onclick="saveMo()">GUARDAR ALIMENTO</button>`;
+  openMo();
+}
+function editFood(id){
+  const foods=getFoods();const f=foods&&foods.find(x=>x.id===id);if(!f)return;
+  mmode='edit-food';medit=id;
+  document.getElementById('mttl').textContent='✏️ Editar Alimento';
+  document.getElementById('mform').innerHTML=`
+    <div class="fg"><label class="fl">Nombre del alimento</label>
+    <input class="fi" id="fn" value="${esc(f.name)}" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Marca (opcional)</label>
+    <input class="fi" id="fbrand" value="${esc(f.brand||'')}" autocomplete="off"></div>
+    <button class="btn brown" onclick="saveMo()">GUARDAR CAMBIOS</button>`;
+  openMo();
+}
+function openAddLote(fid){
+  mmode='add-lote';medit=fid;medit2=null;
+  const loc=getLoc(nav.locId);const isFrost=loc&&loc.isFrost;
+  const expDefault=isFrost?addMonths(today(),9):'';
+  document.getElementById('mttl').textContent='＋ Nuevo Lote';
+  document.getElementById('mform').innerHTML=`
+    ${isFrost?`<div class="info-box">❄️ Congelador — fecha calculada automáticamente (hoy + 9 meses)</div>`:''}
+    <div class="fr">
+      <div class="fg"><label class="fl">Unidades</label>
+      <input class="fi nocase" id="fstk" type="number" min="1" value="1" style="text-align:center;font-weight:700;font-size:18px;text-transform:none;"></div>
+      <div class="fg"><label class="fl">Fecha caducidad</label>
+      <input class="fi nocase" id="fexp" type="date" value="${expDefault}" style="text-transform:none;" ${isFrost?'readonly':''}></div>
+    </div>
+    <button class="btn blue" onclick="saveMo()">AÑADIR LOTE</button>`;
+  openMo();
+}
+function editLote(fid,lid){
+  const foods=getFoods();const f=foods&&foods.find(x=>x.id===fid);if(!f)return;
+  const l=(f.lotes||[]).find(x=>x.id===lid);if(!l)return;
+  mmode='edit-lote';medit=fid;medit2=lid;
+  const loc=getLoc(nav.locId);const isFrost=loc&&loc.isFrost;
+  document.getElementById('mttl').textContent='✏️ Editar Lote';
+  document.getElementById('mform').innerHTML=`
+    <div class="fr">
+      <div class="fg"><label class="fl">Unidades</label>
+      <input class="fi nocase" id="fstk" type="number" min="0" value="${l.stock}" style="text-align:center;font-weight:700;font-size:18px;text-transform:none;"></div>
+      <div class="fg"><label class="fl">Fecha caducidad</label>
+      <input class="fi nocase" id="fexp" type="date" value="${l.expDate||''}" style="text-transform:none;" ${isFrost?'readonly':''}></div>
+    </div>
+    <button class="btn blue" onclick="saveMo()">GUARDAR LOTE</button>`;
+  openMo();
+}
+
+function openMo(){
+  subsOn=false;frostOn=false;
+  document.getElementById('mo').classList.add('open');
+  setTimeout(()=>{const e=document.getElementById('fn');if(e)e.focus();},350);
+}
+function closeMo(e){if(e&&e.target!==document.getElementById('mo'))return;document.getElementById('mo').classList.remove('open');}
+
+function saveMo(){
+  if(mmode==='add-loc'||mmode==='edit-loc'){
+    const name=(document.getElementById('fn')?.value||'').trim().toUpperCase();
+    if(!name){toast('⚠️ El nombre no puede estar vacío');return;}
+    if(mmode==='add-loc'){
+      db.locations.push(subsOn?{id:gid(),name,hasSubs:true,isFrost:frostOn,categories:[]}:{id:gid(),name,hasSubs:false,isFrost:frostOn,foods:[]});
+      toast('✅ Ubicación añadida');
+    } else {
+      const loc=getLoc(medit);if(loc){loc.name=name;toast('✅ Ubicación actualizada');}
+    }
+  } else if(mmode==='add-cat'||mmode==='edit-cat'){
+    const name=(document.getElementById('fn')?.value||'').trim().toUpperCase();
+    if(!name){toast('⚠️ El nombre no puede estar vacío');return;}
+    if(mmode==='add-cat'){const loc=getLoc(nav.locId);if(loc){loc.categories.push({id:gid(),name,foods:[]});toast('✅ Sección añadida');}}
+    else{const loc=getLoc(nav.locId);const cat=getCat(loc,medit);if(cat){cat.name=name;toast('✅ Sección actualizada');}}
+  } else if(mmode==='add-food'||mmode==='edit-food'){
+    const name=(document.getElementById('fn')?.value||'').trim().toUpperCase();
+    if(!name){toast('⚠️ El nombre no puede estar vacío');return;}
+    const brand=(document.getElementById('fbrand')?.value||'').trim().toUpperCase();
+    const foods=getFoods();
+    if(foods!==null){
+      if(mmode==='add-food'){
+        const stk=Math.max(0,parseInt(document.getElementById('fstk')?.value||'0')||0);
+        const expDate=document.getElementById('fexp')?.value||'';
+        const lotes=stk>0||expDate?[{id:gid(),stock:stk,expDate}]:[];
+        foods.push({id:gid(),name,brand,lotes});toast('✅ Alimento añadido');
+      } else {
+        const f=foods.find(x=>x.id===medit);if(f){f.name=name;f.brand=brand;toast('✅ Alimento actualizado');}
+      }
+    }
+  } else if(mmode==='add-lote'||mmode==='edit-lote'){
+    const stk=Math.max(0,parseInt(document.getElementById('fstk')?.value||'0')||0);
+    const expDate=document.getElementById('fexp')?.value||'';
+    const foods=getFoods();const f=foods&&foods.find(x=>x.id===medit);
+    if(f){
+      if(mmode==='add-lote'){if(!f.lotes)f.lotes=[];f.lotes.push({id:gid(),stock:stk,expDate});toast('✅ Lote añadido');}
+      else{const l=(f.lotes||[]).find(x=>x.id===medit2);if(l){l.stock=stk;l.expDate=expDate;toast('✅ Lote actualizado');}}
+    }
+  }
+  save();document.getElementById('mo').classList.remove('open');render();
+}
+
+// ---- DELETE ----
+function askDel(tipo,nombre,cb){delCb=cb;document.getElementById('ctit').textContent=`¿Eliminar ${tipo}?`;document.getElementById('cmsg').textContent=`Se eliminará "${nombre}" y todo su contenido. Esta acción no se puede deshacer.`;document.getElementById('cov').classList.add('open');}
+function closeCov(){document.getElementById('cov').classList.remove('open');delCb=null;}
+function doDelete(){if(delCb){delCb();save();render();toast('🗑 Eliminado');}closeCov();}
+function delLoc(id){db.locations=db.locations.filter(l=>l.id!==id);if(nav.locId===id)goHome();}
+function delCat(id){const loc=getLoc(nav.locId);if(loc)loc.categories=loc.categories.filter(c=>c.id!==id);if(nav.catId===id)goLoc(nav.locId);}
+function delFood(id){const loc=getLoc(nav.locId);if(!loc)return;if(loc.hasSubs){const cat=getCat(loc,nav.catId);if(cat)cat.foods=cat.foods.filter(f=>f.id!==id);}else loc.foods=(loc.foods||[]).filter(f=>f.id!==id);}
+function delLote(fid,lid){const foods=getFoods();const f=foods&&foods.find(x=>x.id===fid);if(f)f.lotes=(f.lotes||[]).filter(l=>l.id!==lid);}
+
+// ---- ALERTAS ----
+function showAlerts(){
+  const alerts=getAllFoodLotes().filter(({l})=>{const s=expStatus(l.expDate);return s.cls==='expired'||s.cls==='warn';}).sort((a,b)=>(expStatus(a.l.expDate).days??9999)-(expStatus(b.l.expDate).days??9999));
+  let h='';
+  alerts.forEach(({loc,cat,f,l})=>{
+    const exp=expStatus(l.expDate);
+    const ubi=cat?`${esc(loc.name)} › ${esc(cat.name)}`:esc(loc.name);
+    h+=`<div class="sr" style="background:${exp.cls==='expired'?'var(--redp)':'var(--orgp)'};border-color:${exp.cls==='expired'?'var(--red)':'var(--orgl)'};color:${exp.cls==='expired'?'var(--red)':'var(--org)'};">
+      <strong>${esc(f.name)}${f.brand?' — '+esc(f.brand):''}</strong>
+      ${l.stock} ud${l.stock!==1?'s':''} · 📍 ${ubi}
+      <span class="exp-tag ${exp.cls}" style="margin-left:4px;">${exp.label}</span>
+    </div>`;
+  });
+  if(!h) h=`<div style="text-align:center;padding:24px;color:var(--gray);">✅ Sin alertas de caducidad</div>`;
+  document.getElementById('ares').innerHTML=h;
+  document.getElementById('ao').classList.add('open');
+}
+function closeAo(e){if(e&&e.target!==document.getElementById('ao'))return;document.getElementById('ao').classList.remove('open');}
+
+// ---- SEARCH ----
+function showSearch(){document.getElementById('si').value='';document.getElementById('sres').innerHTML='';document.getElementById('so').classList.add('open');document.getElementById('micbtn').classList.remove('on');setTimeout(()=>document.getElementById('si').focus(),350);}
+function closeSo(e){if(e&&e.target!==document.getElementById('so'))return;stopVoice();document.getElementById('so').classList.remove('open');}
+function toggleVoice(){
+  if(recog){stopVoice();return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('⚠️ Tu navegador no soporta voz');return;}
+  recog=new SR();recog.lang='es-ES';recog.interimResults=false;recog.maxAlternatives=1;
+  document.getElementById('micbtn').classList.add('on');
+  recog.onresult=e=>{document.getElementById('si').value=e.results[0][0].transcript;doSearch();stopVoice();};
+  recog.onerror=()=>stopVoice();recog.onend=()=>stopVoice();
+  recog.start();
+}
+function stopVoice(){if(recog){try{recog.stop();}catch(e){}recog=null;}const b=document.getElementById('micbtn');if(b)b.classList.remove('on');}
+function norm(s){return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').trim();}
+
+function doSearch(){
+  const raw=document.getElementById('si').value.trim();
+  const el=document.getElementById('sres');
+  if(!raw){el.innerHTML='';return;}
+  const pals=norm(raw).split(/\s+/).filter(p=>p.length>1);
+  if(!pals.length){el.innerHTML='';return;}
+  const res=[];
+  db.locations.forEach(loc=>{
+    const items=loc.hasSubs?(loc.categories||[]).flatMap(c=>c.foods.map(f=>({loc,cat:c,f}))):(loc.foods||[]).map(f=>({loc,cat:null,f}));
+    items.forEach(({loc,cat,f})=>{if(pals.every(w=>norm(f.name+' '+(f.brand||'')).includes(w)))res.push({loc,cat,f});});
+  });
+  let h='';
+  if(!res.length){h=`<div class="sr nf">❌ No hay alimentos que coincidan con "<strong>${esc(raw)}</strong>".</div>`;}
+  else{
+    h+=`<div style="font-size:12px;color:var(--gray);margin-bottom:8px;font-weight:600;">${res.length===1?'1 alimento encontrado':res.length+' alimentos encontrados'}</div>`;
+    res.forEach(({loc,cat,f})=>{
+      const ubi=cat?`${esc(loc.name)} › ${esc(cat.name)}`:esc(loc.name);
+      const totalUds=(f.lotes||[]).reduce((a,l)=>a+l.stock,0);
+      const cid=cat?`'${cat.id}'`:'null';
+      const worstExp=(f.lotes||[]).length?[...(f.lotes||[])].sort((a,b)=>(expStatus(a.expDate).days??9999)-(expStatus(b.expDate).days??9999)).map(l=>expStatus(l.expDate))[0]:{cls:'none',label:'Sin lotes'};
+      h+=`<div class="sr" onclick="goResult('${loc.id}',${cid})">
+        <strong>🥫 ${esc(f.name)}${f.brand?' — '+esc(f.brand):''}</strong>
+        📍 ${ubi} · 📦 ${totalUds} ud${totalUds!==1?'s':''}
+        <span class="exp-tag ${worstExp.cls}" style="margin-left:4px;">${worstExp.label}</span>
+      </div>`;
+    });
+  }
+  h+=`<button class="btn-ok" onclick="closeSoNow()">OK</button>`;
+  el.innerHTML=h;
+}
+function closeSoNow(){stopVoice();document.getElementById('so').classList.remove('open');}
+function goResult(locId,catId){closeSoNow();nav={locId,catId};render();}
+
+setTimeout(()=>document.getElementById('splash').classList.add('hide'),2000);
+// Arranque
+if(currentUser && BLOQUES[currentUser]) {
+  initWithUser();
+} else {
+  setTimeout(()=>renderUserSelector(), 2100);
+}
+</script>
+<script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw-home.js");</script>
+</body>
+</html>
